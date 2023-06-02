@@ -61,13 +61,13 @@ public class StartPipelineEventDetails {
   @Override
   public String toString() {
     return "ProgramStatusEventDetails{"
-            + "appId='" + appId + '\''
-            + ", namespaceId='" + namespaceId + '\''
-            + ", programType='" + programType + '\''
-            + ", programId='" + programId + '\''
-            + ", userArgs=" + userArgs
-            + ", systemArgs=" + systemArgs
-            + '}';
+        + "appId='" + appId + '\''
+        + ", namespaceId='" + namespaceId + '\''
+        + ", programType='" + programType + '\''
+        + ", programId='" + programId + '\''
+        + ", userArgs=" + userArgs
+        + ", systemArgs=" + systemArgs
+        + '}';
   }
 
   public String getProgramId() {

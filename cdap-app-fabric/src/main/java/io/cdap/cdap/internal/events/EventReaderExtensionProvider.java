@@ -33,15 +33,15 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Implementation of {@link EventWriterProvider} which provides Event writer extension classes
+ * Implementation of {@link EventReaderExtensionProvider} which provides Event reader extension classes
  * extending from {@link AbstractExtensionLoader}
  */
-public class EventReaderExtensionProvider extends AbstractExtensionLoader<String, PubSubEventReader>{
+public class EventReaderExtensionProvider extends AbstractExtensionLoader<String, PubSubEventReader> {
 
   private static final Logger LOG = LoggerFactory.getLogger(EventReaderExtensionProvider.class);
   private static final Set<String> ALLOWED_RESOURCES = createAllowedResources();
   private static final Set<String> ALLOWED_PACKAGES = createPackageSets(ALLOWED_RESOURCES);
-  private Collection<String> enabledEventReaders;
+  private final Collection<String> enabledEventReaders;
 
   @Inject
   public EventReaderExtensionProvider(CConfiguration cConf) {

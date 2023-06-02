@@ -14,10 +14,7 @@ import io.cdap.cdap.spi.events.ReceivedEvent;
 import io.cdap.cdap.spi.events.StartPipelineEventDetails;
 import org.apache.twill.api.RunId;
 
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -25,62 +22,63 @@ import java.util.logging.Logger;
 public class PubSubEventHandler extends AbstractScheduledService {
 
 
-    private static final Logger logger = Logger.getLogger(PubSubEventReader.class.getName());
-    private boolean enabled;
-    private EventReaderExtensionProvider readerExtensionProvider;
-    private PubSubEventReader reader;
-    private Gson gson;
+  private static final Logger logger = Logger.getLogger(PubSubEventReader.class.getName());
+  private final boolean enabled;
+  private final EventReaderExtensionProvider readerExtensionProvider;
+  private final PubSubEventReader reader;
+  private final Gson gson;
 
-    private ProgramLifecycleService lifecycleService;
-    @Inject
-    PubSubEventHandler(CConfiguration cConf,
-                       EventReaderExtensionProvider readerExtensionProvider, ProgramLifecycleService lifecycleService) {
-        this.enabled = true;
-        //this.enabled = Feature.EVENT_PUBLISH.isEnabled(new DefaultFeatureFlagsProvider(cConf));
-        this.readerExtensionProvider = readerExtensionProvider;
-        reader = readerExtensionProvider.get("pub-sub-event-reader");
-        reader.initialize();
-        this.lifecycleService = lifecycleService;
-        gson = new Gson();
+  private final ProgramLifecycleService lifecycleService;
+
+  @Inject
+  PubSubEventHandler(CConfiguration cConf,
+                     EventReaderExtensionProvider readerExtensionProvider, ProgramLifecycleService lifecycleService) {
+    this.enabled = true;
+    //this.enabled = Feature.EVENT_PUBLISH.isEnabled(new DefaultFeatureFlagsProvider(cConf));
+    this.readerExtensionProvider = readerExtensionProvider;
+    reader = readerExtensionProvider.get("pub-sub-event-reader");
+    reader.initialize();
+    this.lifecycleService = lifecycleService;
+    gson = new Gson();
+  }
+
+
+  @Override
+  protected void runOneIteration() throws Exception {
+    Optional<ReceivedEvent> pulledMessage = reader.pull();
+    if (pulledMessage.isPresent()) {
+      ReceivedEvent receivedMessage = pulledMessage.get();
+      boolean ack = true;
+      try {
+        StartPipelineEventDetails eventDetails = gson.fromJson(receivedMessage.getEventDetails().getData(),
+            StartPipelineEventDetails.class);
+        ProgramType programType = ProgramType.valueOfCategoryName(eventDetails.getProgramType());
+        ProgramReference programReference = new ProgramReference(eventDetails.getNamespaceId(),
+            eventDetails.getAppId(), programType,
+            eventDetails.getProgramId());
+        RunId runId = lifecycleService.run(programReference, eventDetails.getUserArgs(), true);
+        logger.log(Level.FINE, "Started pipeline, RunId: " + runId);
+      } catch (JsonSyntaxException e) {
+        logger.log(Level.SEVERE, "Cannot read JSON PubSub Message");
+      } catch (TooManyRequestsException e) {
+        logger.log(Level.SEVERE, "At instance capacity");
+        ack = false;
+      } catch (Exception e) {
+        logger.log(Level.SEVERE, e.getMessage());
+      }
+      if (ack) {
+        reader.ack(receivedMessage.getEventDetails().getAckId());
+      } else {
+        reader.nack(receivedMessage.getEventDetails().getAckId());
+      }
     }
+  }
 
 
-    @Override
-    protected void runOneIteration() throws Exception {
-        Optional<ReceivedEvent> pulledMessage = reader.pull();
-        if (pulledMessage.isPresent()) {
-            ReceivedEvent receivedMessage = pulledMessage.get();
-            boolean ack = true;
-            try {
-                StartPipelineEventDetails eventDetails = gson.fromJson(receivedMessage.getEventDetails().getData(),
-                        StartPipelineEventDetails.class);
-                ProgramType programType = ProgramType.valueOfCategoryName(eventDetails.getProgramType());
-                ProgramReference programReference = new ProgramReference(eventDetails.getNamespaceId(),
-                        eventDetails.getAppId(), programType,
-                        eventDetails.getProgramId());
-                RunId runId = lifecycleService.run(programReference, eventDetails.getUserArgs(), true);
-                logger.log(Level.FINE, "Started pipeline, RunId: " + runId);
-            } catch (JsonSyntaxException e) {
-                logger.log(Level.SEVERE, "Cannot read JSON PubSub Message");
-            } catch (TooManyRequestsException e) {
-                logger.log(Level.SEVERE, "At instance capacity");
-                ack = false;
-            } catch (Exception e) {
-                logger.log(Level.SEVERE, e.getMessage());
-            }
-            if (ack) {
-                reader.ack(receivedMessage.getEventDetails().getAckId());
-            } else {
-                reader.nack(receivedMessage.getEventDetails().getAckId());
-            }
-        }
-    }
-
-
-    @Override
-    protected Scheduler scheduler() {
-        return Scheduler.newFixedDelaySchedule(1, 1, TimeUnit.SECONDS);
-    }
+  @Override
+  protected Scheduler scheduler() {
+    return Scheduler.newFixedDelaySchedule(1, 1, TimeUnit.SECONDS);
+  }
 
 
 }

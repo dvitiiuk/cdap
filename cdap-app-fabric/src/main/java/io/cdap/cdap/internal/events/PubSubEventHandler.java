@@ -6,6 +6,8 @@ import com.google.gson.JsonSyntaxException;
 import com.google.inject.Inject;
 import io.cdap.cdap.common.TooManyRequestsException;
 import io.cdap.cdap.common.conf.CConfiguration;
+import io.cdap.cdap.common.feature.DefaultFeatureFlagsProvider;
+import io.cdap.cdap.features.Feature;
 import io.cdap.cdap.internal.app.services.ProgramLifecycleService;
 import io.cdap.cdap.proto.ProgramType;
 import io.cdap.cdap.proto.id.ProgramReference;
@@ -33,8 +35,7 @@ public class PubSubEventHandler extends AbstractScheduledService {
   @Inject
   PubSubEventHandler(CConfiguration cConf,
                      EventReaderExtensionProvider readerExtensionProvider, ProgramLifecycleService lifecycleService) {
-    this.enabled = true;
-    //this.enabled = Feature.EVENT_PUBLISH.isEnabled(new DefaultFeatureFlagsProvider(cConf));
+    this.enabled = Feature.EVENT_PUBLISH.isEnabled(new DefaultFeatureFlagsProvider(cConf));
     this.readerExtensionProvider = readerExtensionProvider;
     reader = readerExtensionProvider.get("pub-sub-event-reader");
     reader.initialize();
@@ -56,7 +57,9 @@ public class PubSubEventHandler extends AbstractScheduledService {
         ProgramReference programReference = new ProgramReference(eventDetails.getNamespaceId(),
             eventDetails.getAppId(), programType,
             eventDetails.getProgramId());
-        RunId runId = lifecycleService.run(programReference, eventDetails.getUserArgs(), true);
+        logger.log(Level.FINE, "Starting pipeline " + eventDetails.getAppId() + ", with args: "
+                + eventDetails.getArgs());
+        RunId runId = lifecycleService.run(programReference, eventDetails.getArgs(), true);
         logger.log(Level.FINE, "Started pipeline, RunId: " + runId);
       } catch (JsonSyntaxException e) {
         logger.log(Level.SEVERE, "Cannot read JSON PubSub Message");
@@ -66,19 +69,22 @@ public class PubSubEventHandler extends AbstractScheduledService {
       } catch (Exception e) {
         logger.log(Level.SEVERE, e.getMessage());
       }
-      if (ack) {
-        reader.ack(receivedMessage.getEventDetails().getAckId());
-      } else {
-        reader.nack(receivedMessage.getEventDetails().getAckId());
+      try {
+        if (ack) {
+          reader.ack(receivedMessage.getEventDetails().getAckId());
+        } else {
+          reader.nack(receivedMessage.getEventDetails().getAckId());
+        }
+      } catch (Exception e) {
+        logger.log(Level.SEVERE, e.getMessage());
       }
+
     }
   }
-
 
   @Override
   protected Scheduler scheduler() {
     return Scheduler.newFixedDelaySchedule(1, 1, TimeUnit.SECONDS);
   }
-
 
 }

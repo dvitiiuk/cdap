@@ -17,9 +17,7 @@
 package io.cdap.cdap.spi.events;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.Map;
-import java.util.Objects;
 
 public class StartPipelineEventDetails {
 
@@ -28,18 +26,15 @@ public class StartPipelineEventDetails {
   private final String programType;
   private final String programId;
   @Nullable
-  private final Map<String, String> userArgs;
-  @Nullable
-  private final Map<String, String> systemArgs;
+  private final Map<String, String> args;
 
   private StartPipelineEventDetails(String appId, String namespaceId, String programId,
                                     String programType,
-                                    @Nullable Map<String, String> userArgs, @Nullable Map<String, String> systemArgs) {
+                                    @Nullable Map<String, String> args) {
     this.appId = appId;
     this.namespaceId = namespaceId;
     this.programId = programId;
-    this.userArgs = userArgs;
-    this.systemArgs = systemArgs;
+    this.args = args;
     this.programType = programType;
   }
 
@@ -49,14 +44,10 @@ public class StartPipelineEventDetails {
   }
 
   @Nullable
-  public Map<String, String> getUserArgs() {
-    return userArgs;
+  public Map<String, String> getArgs() {
+    return args;
   }
 
-  @Nullable
-  public Map<String, String> getSystemArgs() {
-    return systemArgs;
-  }
 
   @Override
   public String toString() {
@@ -65,8 +56,7 @@ public class StartPipelineEventDetails {
         + ", namespaceId='" + namespaceId + '\''
         + ", programType='" + programType + '\''
         + ", programId='" + programId + '\''
-        + ", userArgs=" + userArgs
-        + ", systemArgs=" + systemArgs
+        + ", userArgs=" + args
         + '}';
   }
 

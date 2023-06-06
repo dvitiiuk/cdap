@@ -22,19 +22,46 @@ import java.util.Optional;
  * {@link PubSubEventReader} implementation for sending events to Pub/Sub.
  */
 public interface PubSubEventReader {
+  /**
+   * Method to initialize PubSubEventReader
+   * @param context Configuration properties of reader
+   */
   void initialize(PubSubEventReaderContext context);
 
-  void initialize();
-
+  /**
+   * Pull exactly one message from PubSub if available
+   *
+   * @return Message wrapped in an {@link Optional}
+   */
   Optional<ReceivedEvent> pull();
 
+  /**
+   * Sends an acknowledgement response to PubSub
+   *
+   * @param ackId Ack Id of Message to acknowledge
+   * @throws Exception Invalid ACK ID / Expired ACK ID
+   */
+  void ack(String ackId) throws Exception;
 
-  void ack(String ackId);
+  /**
+   * Sends an non-acknowledgement response to PubSub
+   * Message will be redelivered by.
+   *
+   * @param ackId Ack Id of Message
+   * @throws Exception Invalid ACK ID / Expired ACK ID
+   */
+  void nack(String ackId) throws Exception;
 
-  void nack(String ackId);
-
+  /**
+   * Returns the identifier for this reader
+   *
+   * @return String id for the reader
+   */
   String getID();
 
+  /**
+   * Close connection to PubSub
+   */
   void close();
 }
 

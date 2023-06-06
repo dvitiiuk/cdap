@@ -20,7 +20,7 @@ public class ReceivedEvent implements Event<ReceivedEventDetails> {
 
   @Override
   public EventType getType() {
-    return null;
+    return EventType.RECEIVED_EVENT;
   }
 
   @Override

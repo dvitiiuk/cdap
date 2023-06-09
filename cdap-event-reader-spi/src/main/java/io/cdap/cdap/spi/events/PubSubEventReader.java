@@ -16,10 +16,10 @@
 
 package io.cdap.cdap.spi.events;
 
-import java.util.Optional;
+import java.util.List;
 
 /**
- * {@link PubSubEventReader} implementation for listening for events from Pub/Sub.
+ * {@link PubSubEventReader} Interface for listening for events from Pub/Sub.
  */
 public interface PubSubEventReader {
   /**
@@ -30,11 +30,12 @@ public interface PubSubEventReader {
   void initialize(PubSubEventReaderContext context);
 
   /**
-   * Pull exactly one message from PubSub if available.
+   * Pull exactly messages from PubSub if available.
    *
-   * @return Message wrapped in an {@link Optional}
+   * @param maxMessages: maximum messages to pull
+   * @return List of Messages
    */
-  Optional<ReceivedEvent> pull();
+  List<ReceivedEvent> pull(int maxMessages);
 
   /**
    * Sends an acknowledgement response to PubSub.

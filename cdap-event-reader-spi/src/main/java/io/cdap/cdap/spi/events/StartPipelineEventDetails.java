@@ -16,8 +16,8 @@
 
 package io.cdap.cdap.spi.events;
 
-import java.util.Map;
 import javax.annotation.Nullable;
+import java.util.Map;
 
 public class StartPipelineEventDetails {
 

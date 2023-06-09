@@ -24,5 +24,5 @@ public enum EventType {
    * Event for program status
    */
   PROGRAM_STATUS,
-  PIPELINE_START,
+  PROGRAM_START,
 }

@@ -19,7 +19,7 @@ package io.cdap.cdap.spi.events;
 import javax.annotation.Nullable;
 import java.util.Map;
 
-public class StartPipelineEventDetails {
+public class StartProgramEventDetails {
 
   private final String appId;
   private final String namespaceId;
@@ -28,9 +28,9 @@ public class StartPipelineEventDetails {
   @Nullable
   private final Map<String, String> args;
 
-  private StartPipelineEventDetails(String appId, String namespaceId, String programId,
-                                    String programType,
-                                    @Nullable Map<String, String> args) {
+  private StartProgramEventDetails(String appId, String namespaceId, String programId,
+                                   String programType,
+                                   @Nullable Map<String, String> args) {
     this.appId = appId;
     this.namespaceId = namespaceId;
     this.programId = programId;

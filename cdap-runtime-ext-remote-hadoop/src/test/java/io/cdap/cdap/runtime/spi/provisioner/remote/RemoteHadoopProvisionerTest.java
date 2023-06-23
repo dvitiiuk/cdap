@@ -78,7 +78,7 @@ public class RemoteHadoopProvisionerTest {
     @Override
     public void run() {
       for (int i = 0; i < iterations; i++) {
-        edgeNodeCounters.get(rhp.selectEdgeNode(hostConfig, profileName)).incrementAndGet();
+        edgeNodeCounters.get(rhp.selectEdgeNode(hostConfig, profileName, null)).incrementAndGet();
       }
     }
   }

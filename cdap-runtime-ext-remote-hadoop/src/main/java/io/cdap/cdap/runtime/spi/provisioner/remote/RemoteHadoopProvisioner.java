@@ -18,6 +18,7 @@
 package io.cdap.cdap.runtime.spi.provisioner.remote;
 
 import com.google.common.base.Throwables;
+import io.cdap.cdap.runtime.spi.ProgramRunInfo;
 import io.cdap.cdap.runtime.spi.provisioner.Capabilities;
 import io.cdap.cdap.runtime.spi.provisioner.Cluster;
 import io.cdap.cdap.runtime.spi.provisioner.ClusterProperties;
@@ -114,7 +115,7 @@ public class RemoteHadoopProvisioner implements Provisioner {
   @Override
   public Cluster createCluster(ProvisionerContext context) {
     RemoteHadoopConf conf = RemoteHadoopConf.fromProperties(context.getProperties());
-    String host = selectEdgeNode(conf.getHost(), context.getProfileName());
+    String host = selectEdgeNode(conf.getHost(), context.getProfileName(), context.getProgramRunInfo());
     context.getSSHContext().setSSHKeyPair(conf.getKeyPair());
     Collection<Node> nodes = Collections.singletonList(new Node(host, Node.Type.MASTER, host,
                                                                 0, Collections.emptyMap()));
@@ -129,9 +130,12 @@ public class RemoteHadoopProvisioner implements Provisioner {
     return new Cluster(host, ClusterStatus.RUNNING, nodes, properties);
   }
 
-  String selectEdgeNode(String hostConfigValue, String profileName) {
+  String selectEdgeNode(String hostConfigValue, String profileName, ProgramRunInfo programRunInfo) {
     String host;
     LOG.debug("Retrieved edge nodes: " + hostConfigValue + " for profile: " + profileName);
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("Program to provision: " + programRunInfo);
+    }
     if (hostConfigValue.contains(HOSTS_SEPARATOR)) {
       List<String> hosts = Arrays.stream(hostConfigValue.split(HOSTS_SEPARATOR))
         .map(String::trim).collect(Collectors.toList());
@@ -139,13 +143,18 @@ public class RemoteHadoopProvisioner implements Provisioner {
         .compute(profileName, (pn, c) -> pn == null ? 0 : c == null ? 0 : c == Integer.MAX_VALUE ? 0 : ++c);
       LOG.debug("Current counter value for profile: " + profileName + " is: " + counterValue);
       if (LOG.isTraceEnabled()) {
-        LOG.trace("All counters for profile: " + profileName + " are: " + LATEST_EDGE_NODE.toString());
+        LOG.trace("All profile counters are: " + LATEST_EDGE_NODE.toString());
       }
       host = hosts.get(counterValue % hosts.size());
     } else {
       host = hostConfigValue;
     }
-    LOG.info("Hadoop edge node to use: " + host  + " for profile: " + profileName);
+    if (LOG.isInfoEnabled()) {
+      LOG.info("Pipeline: " + (programRunInfo == null ? null : programRunInfo.getApplication()) +
+        ", namespace: " + (programRunInfo == null ? null : programRunInfo.getNamespace()) +
+        " will be run on edge node: " + host +
+        " from profile: " + profileName);
+    }
     return host;
   }
 

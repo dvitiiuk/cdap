@@ -42,6 +42,8 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -59,6 +61,9 @@ public class KubeMasterEnvironmentTest {
 
   private static final String KUBE_NAMESPACE = "test-kube-namespace";
   private static final String KUBE_INSTALL_NAMESPACE = "kube-install-namespace";
+
+  private static final String PREPARE_CUSTOM_VOLUME_PREFIXES_METHOD_NAME = "prepareCustomVolumePrefixes";
+  private static final String IS_CUSTOM_VOLUME_PREFIX_METHOD_NAME = "isCustomVolumePrefix";
 
   private CoreV1Api coreV1Api;
   private KubeMasterEnvironment kubeMasterEnvironment;
@@ -246,6 +251,55 @@ public class KubeMasterEnvironmentTest {
     gotName = KubeMasterEnvironment.getComponentName(
       "dap", "cdap-dap-preview-runner-b5786a15-e8f4-47-0cebad7d67-0");
     Assert.assertEquals("preview-runner-b5786a15-e8f4-47-0cebad7d67-0", gotName);
+  }
+
+  @Test
+  public void testSingleCustomVolume() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    Method prepareCustomVolumePrefixesMethod =
+      KubeMasterEnvironment.class.getDeclaredMethod(PREPARE_CUSTOM_VOLUME_PREFIXES_METHOD_NAME, String.class);
+    prepareCustomVolumePrefixesMethod.setAccessible(true);
+    Method isCustomVolumePrefixMethod =
+      KubeMasterEnvironment.class.getDeclaredMethod(IS_CUSTOM_VOLUME_PREFIX_METHOD_NAME, String.class);
+    isCustomVolumePrefixMethod.setAccessible(true);
+
+    prepareCustomVolumePrefixesMethod.invoke(kubeMasterEnvironment, "test-av-");
+
+    // default ConfigMap and Secret volumes
+    Assert.assertTrue((boolean) isCustomVolumePrefixMethod.invoke(kubeMasterEnvironment, "cdap-cm-vol-vol1"));
+    Assert.assertTrue((boolean) isCustomVolumePrefixMethod.invoke(kubeMasterEnvironment, "cdap-se-vol-vol2"));
+
+    // required volumes
+    Assert.assertTrue((boolean) isCustomVolumePrefixMethod.invoke(kubeMasterEnvironment, "test-av-volume"));
+    Assert.assertTrue((boolean) isCustomVolumePrefixMethod.invoke(kubeMasterEnvironment, "test-av-logs"));
+
+    // not required volumes
+    Assert.assertFalse((boolean) isCustomVolumePrefixMethod.invoke(kubeMasterEnvironment, "test-bv-volume"));
+    Assert.assertFalse((boolean) isCustomVolumePrefixMethod.invoke(kubeMasterEnvironment, "test-cv-volume"));
+  }
+
+  @Test
+  public void testMultipleCustomVolumes()
+    throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    Method prepareCustomVolumePrefixesMethod =
+      KubeMasterEnvironment.class.getDeclaredMethod(PREPARE_CUSTOM_VOLUME_PREFIXES_METHOD_NAME, String.class);
+    prepareCustomVolumePrefixesMethod.setAccessible(true);
+    Method isCustomVolumePrefixMethod =
+      KubeMasterEnvironment.class.getDeclaredMethod(IS_CUSTOM_VOLUME_PREFIX_METHOD_NAME, String.class);
+    isCustomVolumePrefixMethod.setAccessible(true);
+
+    prepareCustomVolumePrefixesMethod.invoke(kubeMasterEnvironment, "test-av-,test-bv-");
+
+    // default ConfigMap and Secret volumes
+    Assert.assertTrue((boolean) isCustomVolumePrefixMethod.invoke(kubeMasterEnvironment, "cdap-cm-vol-vol1"));
+    Assert.assertTrue((boolean) isCustomVolumePrefixMethod.invoke(kubeMasterEnvironment, "cdap-se-vol-vol2"));
+
+    // required volumes
+    Assert.assertTrue((boolean) isCustomVolumePrefixMethod.invoke(kubeMasterEnvironment, "test-av-volume"));
+    Assert.assertTrue((boolean) isCustomVolumePrefixMethod.invoke(kubeMasterEnvironment, "test-av-logs"));
+    Assert.assertTrue((boolean) isCustomVolumePrefixMethod.invoke(kubeMasterEnvironment, "test-bv-volume"));
+
+    // not required volumes
+    Assert.assertFalse((boolean) isCustomVolumePrefixMethod.invoke(kubeMasterEnvironment, "test-cv-volume"));
   }
 
   private void assertDoesNotMountWorkloadIdentityVolume(V1Pod driverPod, V1Pod executorPod) {

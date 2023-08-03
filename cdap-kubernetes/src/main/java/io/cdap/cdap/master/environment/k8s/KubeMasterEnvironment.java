@@ -107,6 +107,8 @@ public class KubeMasterEnvironment implements MasterEnvironment {
   // Contains the list of configuration / secret names coming from the Pod information, which are
   // needed to propagate to deployments created via the KubeTwillRunnerService
   private static final Set<String> CONFIG_NAMES = ImmutableSet.of("cdap-conf", "hadoop-conf", "cdap-security");
+
+  // default prefixes for custom ConfigMap and Secret volumes
   private static final Set<String> CUSTOM_VOLUME_PREFIX = ImmutableSet.of("cdap-cm-vol-", "cdap-se-vol-");
 
   private static final String MASTER_MAX_INSTANCES = "master.service.max.instances";
@@ -129,6 +131,7 @@ public class KubeMasterEnvironment implements MasterEnvironment {
   private static final String SPARK_KUBERNETES_DRIVER_LABEL_PREFIX = "spark.kubernetes.driver.label.";
   private static final String SPARK_KUBERNETES_EXECUTOR_LABEL_PREFIX = "spark.kubernetes.executor.label.";
   private static final String SPARK_KUBERNETES_NAMESPACE = "spark.kubernetes.namespace";
+  private static final String POD_ADDITIONAL_CUSTOM_VOLUME_PREFIXES = "k8s.pod.volume.additional_prefixes";
   @VisibleForTesting
   static final String SPARK_KUBERNETES_DRIVER_POD_TEMPLATE = "spark.kubernetes.driver.podTemplateFile";
   @VisibleForTesting
@@ -228,6 +231,7 @@ public class KubeMasterEnvironment implements MasterEnvironment {
   private long workloadIdentityServiceAccountTokenTTLSeconds;
   private String programCpuMultiplier;
   private String cdapInstallNamespace;
+  private Set<String> customVolumePrefixes;
 
   public KubeMasterEnvironment() {
     gson = new Gson();
@@ -246,6 +250,7 @@ public class KubeMasterEnvironment implements MasterEnvironment {
     podUidFile = new File(podInfoDir, conf.getOrDefault(POD_UID_FILE, DEFAULT_POD_UID_FILE));
     podNamespaceFile = new File(podInfoDir, conf.getOrDefault(POD_NAMESPACE_FILE, DEFAULT_POD_NAMESPACE_FILE));
     workloadIdentityEnabled = Boolean.parseBoolean(conf.get(WORKLOAD_IDENTITY_ENABLED));
+    prepareCustomVolumePrefixes(conf.get(POD_ADDITIONAL_CUSTOM_VOLUME_PREFIXES));
     String workloadIdentityProvider = null;
     if (workloadIdentityEnabled) {
       // Validate all workload identity configurations are set
@@ -582,7 +587,7 @@ public class KubeMasterEnvironment implements MasterEnvironment {
    * Returns {@code true} if the given volume name is prefixed with the custom volume mapping from the CRD.
    */
   private boolean isCustomVolumePrefix(String name) {
-    return CUSTOM_VOLUME_PREFIX.stream().anyMatch(name::startsWith);
+    return customVolumePrefixes.stream().anyMatch(name::startsWith);
   }
 
   /**
@@ -868,6 +873,15 @@ public class KubeMasterEnvironment implements MasterEnvironment {
       .collect(Collectors.joining(","));
 
     return new PodWatcherThread(podInfo.getNamespace(), labelSelector);
+  }
+
+  private void prepareCustomVolumePrefixes(String additionalPrefixesConf) {
+    customVolumePrefixes = new HashSet<>();
+    customVolumePrefixes.addAll(CUSTOM_VOLUME_PREFIX);
+    if (additionalPrefixesConf != null && !additionalPrefixesConf.isEmpty()) {
+      customVolumePrefixes.addAll(
+        Arrays.stream(additionalPrefixesConf.split(",")).map(String::trim).collect(Collectors.toList()));
+    }
   }
 
   private static class PodWatcherThread extends AbstractWatcherThread<V1Pod> implements SparkDriverWatcher {

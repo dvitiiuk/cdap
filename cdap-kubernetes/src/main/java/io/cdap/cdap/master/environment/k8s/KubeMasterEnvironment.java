@@ -231,7 +231,7 @@ public class KubeMasterEnvironment implements MasterEnvironment {
   private long workloadIdentityServiceAccountTokenTTLSeconds;
   private String programCpuMultiplier;
   private String cdapInstallNamespace;
-  private Set<String> customVolumePrefix;
+  private Set<String> customVolumePrefixes;
 
   public KubeMasterEnvironment() {
     gson = new Gson();
@@ -250,7 +250,7 @@ public class KubeMasterEnvironment implements MasterEnvironment {
     podUidFile = new File(podInfoDir, conf.getOrDefault(POD_UID_FILE, DEFAULT_POD_UID_FILE));
     podNamespaceFile = new File(podInfoDir, conf.getOrDefault(POD_NAMESPACE_FILE, DEFAULT_POD_NAMESPACE_FILE));
     workloadIdentityEnabled = Boolean.parseBoolean(conf.get(WORKLOAD_IDENTITY_ENABLED));
-    prepareCustomVolumePrefix(conf.get(POD_ADDITIONAL_CUSTOM_VOLUME_PREFIXES));
+    prepareCustomVolumePrefixes(conf.get(POD_ADDITIONAL_CUSTOM_VOLUME_PREFIXES));
     String workloadIdentityProvider = null;
     if (workloadIdentityEnabled) {
       // Validate all workload identity configurations are set
@@ -587,7 +587,7 @@ public class KubeMasterEnvironment implements MasterEnvironment {
    * Returns {@code true} if the given volume name is prefixed with the custom volume mapping from the CRD.
    */
   private boolean isCustomVolumePrefix(String name) {
-    return customVolumePrefix.stream().anyMatch(name::startsWith);
+    return customVolumePrefixes.stream().anyMatch(name::startsWith);
   }
 
   /**
@@ -875,11 +875,11 @@ public class KubeMasterEnvironment implements MasterEnvironment {
     return new PodWatcherThread(podInfo.getNamespace(), labelSelector);
   }
 
-  private void prepareCustomVolumePrefix(String additionalPrefixesConf) {
-    customVolumePrefix = new HashSet<>();
-    customVolumePrefix.addAll(CUSTOM_VOLUME_PREFIX);
+  private void prepareCustomVolumePrefixes(String additionalPrefixesConf) {
+    customVolumePrefixes = new HashSet<>();
+    customVolumePrefixes.addAll(CUSTOM_VOLUME_PREFIX);
     if (additionalPrefixesConf != null && !additionalPrefixesConf.isEmpty()) {
-      customVolumePrefix.addAll(
+      customVolumePrefixes.addAll(
         Arrays.stream(additionalPrefixesConf.split(",")).map(String::trim).collect(Collectors.toList()));
     }
   }

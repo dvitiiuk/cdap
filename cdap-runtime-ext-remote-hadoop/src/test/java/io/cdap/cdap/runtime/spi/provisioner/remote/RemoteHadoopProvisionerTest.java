@@ -23,6 +23,7 @@ public class RemoteHadoopProvisionerTest {
     String testProfileName = "profile0";
     int testThreadsNumber = 5;
     List<String> testEdgeNodes = Arrays.asList("h0", "h1", "h2");
+    RemoteHadoopConf conf = createRemoteHadoopConf(testEdgeNodes);
 
     Map<String, AtomicLong> edgeNodeCounters = new HashMap<>();
     for (String edgeNode : testEdgeNodes) {
@@ -31,7 +32,7 @@ public class RemoteHadoopProvisionerTest {
 
     List<Thread> testThreads = new ArrayList<>();
     for (int i = 0; i < testThreadsNumber; i++) {
-      testThreads.add(new Thread(new ProvisionerRunner(Integer.MAX_VALUE, String.join(",", testEdgeNodes),
+      testThreads.add(new Thread(new ProvisionerRunner(Integer.MAX_VALUE, conf,
         testProfileName, edgeNodeCounters)));
     }
     for (Thread t : testThreads) {
@@ -59,18 +60,29 @@ public class RemoteHadoopProvisionerTest {
     }
   }
 
+  private RemoteHadoopConf createRemoteHadoopConf(List<String> testEdgeNodes) {
+    Map<String, String> properties = new HashMap<>();
+    properties.put(RemoteHadoopConf.HOST_PROPERTY_NAME, String.join(",", testEdgeNodes));
+    properties.put(RemoteHadoopConf.USER_PROPERTY_NAME, "dummyUser");
+    properties.put(RemoteHadoopConf.SSH_KEY_PROPERTY_NAME, "dummyKey");
+    properties.put(RemoteHadoopConf.LOAD_BALANCING_METHOD_PROPERTY_NAME, LoadBalancingMethod.ROUND_ROBIN.toString());
+    properties.put(RemoteHadoopConf.CHECK_TIMEOUT_PROPERTY_NAME, "1");
+
+    return RemoteHadoopConf.fromProperties(properties);
+  }
+
   private class ProvisionerRunner implements Runnable {
     private final int iterations;
-    private final String hostConfig;
+    private final RemoteHadoopConf conf;
     private final String profileName;
     private final Map<String, AtomicLong> edgeNodeCounters;
 
     private RemoteHadoopProvisioner rhp = new RemoteHadoopProvisioner();
 
-    public ProvisionerRunner(int iterations, String hostConfig, String profileName,
+    public ProvisionerRunner(int iterations, RemoteHadoopConf conf, String profileName,
                              Map<String, AtomicLong> edgeNodeCounters) {
       this.iterations = iterations;
-      this.hostConfig = hostConfig;
+      this.conf = conf;
       this.profileName = profileName;
       this.edgeNodeCounters = edgeNodeCounters;
     }
@@ -78,7 +90,11 @@ public class RemoteHadoopProvisionerTest {
     @Override
     public void run() {
       for (int i = 0; i < iterations; i++) {
-        edgeNodeCounters.get(rhp.selectEdgeNode(hostConfig, profileName, null)).incrementAndGet();
+        try {
+          edgeNodeCounters.get(rhp.selectEdgeNode(conf, profileName, null)).incrementAndGet();
+        } catch (NoLiveEdgeNodeException e) {
+          // no op as it is impossible to get this exception by the test setting
+        }
       }
     }
   }

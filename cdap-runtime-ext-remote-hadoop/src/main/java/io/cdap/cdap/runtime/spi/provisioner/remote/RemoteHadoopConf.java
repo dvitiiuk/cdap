@@ -33,14 +33,21 @@ public class RemoteHadoopConf {
   private final String initializationAction;
   private final String kerberosKeytabPath;
   private final String kerberosPrincipal;
+  private final EdgeNodeCheckType edgeNodeCheckType;
+  private final int timeout;
+
+  private static final int DEFAULT_CHECK_TIMEOUT = 5000;
 
   private RemoteHadoopConf(SSHKeyPair sshKeyPair, String host, @Nullable String initializationAction,
-                           @Nullable String kerberosPrincipal, @Nullable String kerberosKeytabPath) {
+                           @Nullable String kerberosPrincipal, @Nullable String kerberosKeytabPath,
+                           EdgeNodeCheckType edgeNodeCheckType, Integer timeout) {
     this.sshKeyPair = sshKeyPair;
     this.host = host;
     this.initializationAction = initializationAction;
     this.kerberosKeytabPath = kerberosKeytabPath;
     this.kerberosPrincipal = kerberosPrincipal;
+    this.edgeNodeCheckType = edgeNodeCheckType;
+    this.timeout = timeout;
   }
 
   public SSHKeyPair getKeyPair() {
@@ -66,6 +73,14 @@ public class RemoteHadoopConf {
     return kerberosPrincipal;
   }
 
+  public EdgeNodeCheckType getEdgeNodeCheck() {
+    return edgeNodeCheckType;
+  }
+
+  public int getTimeout() {
+    return timeout;
+  }
+
   /**
    * Create the conf from a property map while also performing validation.
    */
@@ -76,10 +91,14 @@ public class RemoteHadoopConf {
 
     SSHKeyPair keyPair = new SSHKeyPair(new SSHPublicKey(user, ""),
                                         () -> privateKey.getBytes(StandardCharsets.UTF_8));
+
+    EdgeNodeCheckType edgeNodeCheckType = EdgeNodeCheckType.getEdgeNodeCheck(properties.get("edgeNodeCheckMethod"));
+    int checkTimeout = parseCheckTimeout(properties.get("checkTimeout"));
+
     return new RemoteHadoopConf(keyPair, host, properties.get("initializationAction"),
                                 properties.get("kerberosPrincipal"),
-                                properties.get("kerberosKeytabPath")
-    );
+                                properties.get("kerberosKeytabPath"),
+      edgeNodeCheckType, checkTimeout);
   }
 
   private static String getString(Map<String, String> properties, String key) {
@@ -88,5 +107,13 @@ public class RemoteHadoopConf {
       throw new IllegalArgumentException(String.format("Invalid config. '%s' must be specified.", key));
     }
     return val;
+  }
+
+  private static int parseCheckTimeout(String value) {
+    try {
+      return Integer.parseInt(value);
+    } catch (Exception e) {
+      return DEFAULT_CHECK_TIMEOUT;
+    }
   }
 }

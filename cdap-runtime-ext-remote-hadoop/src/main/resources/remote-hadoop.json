@@ -11,12 +11,12 @@
       "properties": [
         {
           "widget-type": "textbox",
-          "label": "Host",
+          "label": "Host(s)",
           "name": "host",
           "required": true,
-          "description": "The edge node to connect to when launching jobs.",
+          "description": "The edge node(s) to connect to when launching jobs. Multiple edge nodes separated by semicolon can be used",
           "widget-attributes": {
-            "placeholder": "Specify the host to connect to"
+            "placeholder": "Specify the host(s) to connect to"
           }
         },
         {
@@ -69,6 +69,43 @@
           "description": "The file path to the Kerberos keytab file. The file path must exist on the master node of the Hadoop cluster",
           "widget-attributes": {
             "placeholder": "Specify the Kerberos keytab path"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Edge node check settings",
+      "properties": [
+        {
+          "widget-type": "radio-group",
+          "label": "Edge node check method",
+          "name": "edgeNodeCheckMethod",
+          "required": true,
+          "description": "Algorithm should be used to check edge node before a pipeline run.",
+          "widget-attributes": {
+            "layout": "inline",
+            "default": "ping",
+            "options": [
+              {
+                "id": "none",
+                "label": "No check"
+              },
+              {
+                "id": "ping",
+                "label": "Check host is reachable (ping)"
+              }
+            ]
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "Pipeline pre-run host check timeout",
+          "name": "checkTimeout",
+          "required": true,
+          "description": "Timeout in milliseconds to check edge node before pipeline run.",
+          "widget-attributes": {
+            "default": "400",
+            "min": "0"
           }
         }
       ]

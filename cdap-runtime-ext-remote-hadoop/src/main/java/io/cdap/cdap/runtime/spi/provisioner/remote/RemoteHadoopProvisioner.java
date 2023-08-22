@@ -113,9 +113,9 @@ public class RemoteHadoopProvisioner implements Provisioner {
   }
 
   @Override
-  public Cluster createCluster(ProvisionerContext context) {
+  public Cluster createCluster(ProvisionerContext context) throws Exception {
     RemoteHadoopConf conf = RemoteHadoopConf.fromProperties(context.getProperties());
-    String host = selectEdgeNode(conf.getHost(), context.getProfileName(), context.getProgramRunInfo());
+    String host = selectEdgeNode(conf, context.getProfileName(), context.getProgramRunInfo());
     context.getSSHContext().setSSHKeyPair(conf.getKeyPair());
     Collection<Node> nodes = Collections.singletonList(new Node(host, Node.Type.MASTER, host,
                                                                 0, Collections.emptyMap()));
@@ -130,8 +130,10 @@ public class RemoteHadoopProvisioner implements Provisioner {
     return new Cluster(host, ClusterStatus.RUNNING, nodes, properties);
   }
 
-  String selectEdgeNode(String hostConfigValue, String profileName, ProgramRunInfo programRunInfo) {
-    String host;
+  String selectEdgeNode(RemoteHadoopConf conf, String profileName, ProgramRunInfo programRunInfo)
+    throws NoLiveEdgeNodeException {
+    String selectedHost;
+    String hostConfigValue = conf.getHost();
     LOG.debug("Retrieved edge nodes: " + hostConfigValue + " for profile: " + profileName);
     if (LOG.isTraceEnabled()) {
       LOG.trace("Program to provision: " + programRunInfo);
@@ -145,17 +147,29 @@ public class RemoteHadoopProvisioner implements Provisioner {
       if (LOG.isTraceEnabled()) {
         LOG.trace("All profile counters are: " + LATEST_EDGE_NODE.toString());
       }
-      host = hosts.get(counterValue % hosts.size());
+      selectedHost = selectCheckedEdgeNode(hosts, counterValue, conf.getEdgeNodeCheck(), conf.getTimeout());
     } else {
-      host = hostConfigValue;
+      selectedHost = hostConfigValue;
     }
     if (LOG.isInfoEnabled()) {
       LOG.info("Pipeline: " + (programRunInfo == null ? null : programRunInfo.getApplication()) +
         ", namespace: " + (programRunInfo == null ? null : programRunInfo.getNamespace()) +
-        " will be run on edge node: " + host +
+        " will be run on edge node: " + selectedHost +
         " from profile: " + profileName);
     }
-    return host;
+    return selectedHost;
+  }
+
+  String selectCheckedEdgeNode(List<String> hosts, int initialIndex, EdgeNodeCheckType edgeNodeCheckType, int timeout)
+    throws NoLiveEdgeNodeException {
+    LOG.trace(edgeNodeCheckType + " check type is used");
+    if (edgeNodeCheckType == EdgeNodeCheckType.NONE) {
+      return hosts.get(initialIndex % hosts.size());
+    } else if (edgeNodeCheckType == EdgeNodeCheckType.PING) {
+      return new PingEdgeNodeCheck().selectPingableEdgeNode(hosts, initialIndex, timeout);
+    } else {
+      throw new IllegalArgumentException("Edge Node check option '" + edgeNodeCheckType + "' is not supported.");
+    }
   }
 
   @Override

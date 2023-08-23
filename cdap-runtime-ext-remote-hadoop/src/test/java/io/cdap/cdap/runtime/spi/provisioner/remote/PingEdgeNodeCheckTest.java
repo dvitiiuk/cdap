@@ -19,7 +19,7 @@ import static org.easymock.EasyMock.verify;
 
 public class PingEdgeNodeCheckTest {
 
-  private static final String RUN_NODE_PING_COMMAND_METHOD_NAME = "runNodePingCommand";
+  private static final String GET_RUNTIME_METHOD_NAME = "getRuntime";
 
   @Test
   public void testSuccessPingIndex0() throws IOException, InterruptedException, NoLiveEdgeNodeException {
@@ -56,17 +56,19 @@ public class PingEdgeNodeCheckTest {
     List<String> hosts = Arrays.asList("node0", "node1", "node2");
 
     Process pFail = createStrictMock(Process.class);
+    Runtime runtime = createStrictMock(Runtime.class);
     PingEdgeNodeCheck pingEdgeNodeCheck = partialMockBuilder(PingEdgeNodeCheck.class)
-      .addMockedMethod(RUN_NODE_PING_COMMAND_METHOD_NAME, String.class).createStrictMock();
+      .addMockedMethod(GET_RUNTIME_METHOD_NAME).createStrictMock();
 
-    expect(pingEdgeNodeCheck.runNodePingCommand(anyString())).andReturn(pFail).times(3);
-    expect(pFail.waitFor(anyLong(), eq(TimeUnit.MILLISECONDS))).andReturn(false).times(3);
+    expect(runtime.exec(anyString())).andReturn(pFail).times(3);
+    expect(pingEdgeNodeCheck.getRuntime()).andReturn(runtime).times(3);
+    expect(pFail.waitFor(anyLong(), eq(TimeUnit.SECONDS))).andReturn(false).times(3);
 
-    replay(pingEdgeNodeCheck, pFail);
+    replay(pingEdgeNodeCheck, runtime, pFail);
 
     pingEdgeNodeCheck.selectPingableEdgeNode(hosts, 0, 100);
 
-    verify(pingEdgeNodeCheck, pFail);
+    verify(pingEdgeNodeCheck, runtime, pFail);
   }
 
   private void testSuccessPingWithIndex(int startIndex) throws IOException, InterruptedException,
@@ -74,42 +76,46 @@ public class PingEdgeNodeCheckTest {
     List<String> hosts = Arrays.asList("node0", "node1", "node2");
 
     Process p = createStrictMock(Process.class);
+    Runtime runtime = createStrictMock(Runtime.class);
     PingEdgeNodeCheck pingEdgeNodeCheck = partialMockBuilder(PingEdgeNodeCheck.class)
-      .addMockedMethod(RUN_NODE_PING_COMMAND_METHOD_NAME, String.class).createStrictMock();
+      .addMockedMethod(GET_RUNTIME_METHOD_NAME).createStrictMock();
 
-    expect(pingEdgeNodeCheck.runNodePingCommand(anyString())).andReturn(p).anyTimes();
-    expect(p.waitFor(anyLong(), eq(TimeUnit.MILLISECONDS))).andReturn(true);
+    expect(runtime.exec(anyString())).andReturn(p);
+    expect(pingEdgeNodeCheck.getRuntime()).andReturn(runtime);
+    expect(p.waitFor(anyLong(), eq(TimeUnit.SECONDS))).andReturn(true);
     expect(p.exitValue()).andReturn(0);
 
-    replay(pingEdgeNodeCheck, p);
+    replay(pingEdgeNodeCheck, runtime, p);
 
     String selectedNode = pingEdgeNodeCheck.selectPingableEdgeNode(hosts, startIndex, 100);
     Assert.assertEquals(hosts.get(startIndex), selectedNode);
 
-    verify(pingEdgeNodeCheck, p);
+    verify(pingEdgeNodeCheck, runtime, p);
   }
 
   private void testPartiallySuccessPingTimeoutWithIndex(int startIndex) throws IOException, InterruptedException,
     NoLiveEdgeNodeException {
     List<String> hosts = Arrays.asList("node0", "node1", "node2");
 
+    Runtime runtime = createStrictMock(Runtime.class);
     Process pFail = createStrictMock(Process.class);
     Process pSuccess = createStrictMock(Process.class);
     PingEdgeNodeCheck pingEdgeNodeCheck = partialMockBuilder(PingEdgeNodeCheck.class)
-      .addMockedMethod(RUN_NODE_PING_COMMAND_METHOD_NAME, String.class).createStrictMock();
+      .addMockedMethod(GET_RUNTIME_METHOD_NAME).createStrictMock();
 
-    expect(pingEdgeNodeCheck.runNodePingCommand(anyString())).andReturn(pFail);
-    expect(pFail.waitFor(anyLong(), eq(TimeUnit.MILLISECONDS))).andReturn(false);
+    expect(runtime.exec(anyString())).andReturn(pFail);
+    expect(pingEdgeNodeCheck.getRuntime()).andReturn(runtime).times(2);
+    expect(pFail.waitFor(anyLong(), eq(TimeUnit.SECONDS))).andReturn(false);
 
-    expect(pingEdgeNodeCheck.runNodePingCommand(anyString())).andReturn(pSuccess);
-    expect(pSuccess.waitFor(anyLong(), eq(TimeUnit.MILLISECONDS))).andReturn(true);
+    expect(runtime.exec(anyString())).andReturn(pSuccess);
+    expect(pSuccess.waitFor(anyLong(), eq(TimeUnit.SECONDS))).andReturn(true);
     expect(pSuccess.exitValue()).andReturn(0);
 
-    replay(pingEdgeNodeCheck, pFail, pSuccess);
+    replay(pingEdgeNodeCheck, runtime, pFail, pSuccess);
 
     String selectedNode = pingEdgeNodeCheck.selectPingableEdgeNode(hosts, startIndex, 100);
     Assert.assertEquals(hosts.get((startIndex + 1) % 3), selectedNode);
 
-    verify(pingEdgeNodeCheck, pFail, pSuccess);
+    verify(pingEdgeNodeCheck, runtime, pFail, pSuccess);
   }
 }

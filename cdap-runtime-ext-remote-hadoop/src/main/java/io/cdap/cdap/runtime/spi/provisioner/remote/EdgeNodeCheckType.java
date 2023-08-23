@@ -1,24 +1,18 @@
 package io.cdap.cdap.runtime.spi.provisioner.remote;
 
 public enum EdgeNodeCheckType {
-  PING("ping"),
-  NONE("none");
+  PING,
+  NONE;
 
-  private final String name;
-
-  EdgeNodeCheckType(String name) {
-    this.name = name;
-  }
-
-  public static EdgeNodeCheckType getEdgeNodeCheck(String name) {
+  public static EdgeNodeCheckType fromString(String name) {
     if (name == null) {
       return NONE;
     }
-    for (EdgeNodeCheckType enc : EdgeNodeCheckType.values()) {
-      if (enc.name.equalsIgnoreCase(name)) {
-        return enc;
-      }
+
+    try {
+      return EdgeNodeCheckType.valueOf(name.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      return NONE;
     }
-    return NONE;
   }
 }

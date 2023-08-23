@@ -66,7 +66,6 @@ public class RemoteHadoopProvisionerTest {
     properties.put("user", "dummyUser");
     properties.put("sshKey", "dummyKey");
     properties.put("edgeNodeCheckMethod", EdgeNodeCheckType.NONE.toString());
-    properties.put("edgeNodeCheckMethod", EdgeNodeCheckType.NONE.toString());
 
     return RemoteHadoopConf.fromProperties(properties);
   }
@@ -93,7 +92,7 @@ public class RemoteHadoopProvisionerTest {
         try {
           edgeNodeCounters.get(rhp.selectEdgeNode(conf, profileName, null)).incrementAndGet();
         } catch (NoLiveEdgeNodeException e) {
-          e.printStackTrace();
+          // no op as it is impossible to get this exception by the test setting
         }
       }
     }

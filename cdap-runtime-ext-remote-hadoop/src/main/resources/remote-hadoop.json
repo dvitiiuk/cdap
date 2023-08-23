@@ -102,10 +102,10 @@
           "label": "Pipeline pre-run host check timeout",
           "name": "checkTimeout",
           "required": true,
-          "description": "Timeout in milliseconds to check edge node before pipeline run.",
+          "description": "Timeout in seconds to check edge node before pipeline run.",
           "widget-attributes": {
-            "default": "400",
-            "min": "0"
+            "default": "5",
+            "min": "1"
           }
         }
       ]

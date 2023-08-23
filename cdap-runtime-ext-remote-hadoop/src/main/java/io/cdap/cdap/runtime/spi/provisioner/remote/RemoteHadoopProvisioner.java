@@ -113,7 +113,7 @@ public class RemoteHadoopProvisioner implements Provisioner {
   }
 
   @Override
-  public Cluster createCluster(ProvisionerContext context) throws Exception {
+  public Cluster createCluster(ProvisionerContext context) throws NoLiveEdgeNodeException {
     RemoteHadoopConf conf = RemoteHadoopConf.fromProperties(context.getProperties());
     String host = selectEdgeNode(conf, context.getProfileName(), context.getProgramRunInfo());
     context.getSSHContext().setSSHKeyPair(conf.getKeyPair());
@@ -163,12 +163,13 @@ public class RemoteHadoopProvisioner implements Provisioner {
   String selectCheckedEdgeNode(List<String> hosts, int initialIndex, EdgeNodeCheckType edgeNodeCheckType, int timeout)
     throws NoLiveEdgeNodeException {
     LOG.trace(edgeNodeCheckType + " check type is used");
-    if (edgeNodeCheckType == EdgeNodeCheckType.NONE) {
-      return hosts.get(initialIndex % hosts.size());
-    } else if (edgeNodeCheckType == EdgeNodeCheckType.PING) {
-      return new PingEdgeNodeCheck().selectPingableEdgeNode(hosts, initialIndex, timeout);
-    } else {
-      throw new IllegalArgumentException("Edge Node check option '" + edgeNodeCheckType + "' is not supported.");
+    switch (edgeNodeCheckType) {
+      case NONE:
+        return hosts.get(initialIndex % hosts.size());
+      case PING:
+        return new PingEdgeNodeCheck().selectPingableEdgeNode(hosts, initialIndex, timeout);
+      default:
+        throw new IllegalArgumentException("Edge Node check option '" + edgeNodeCheckType + "' is not supported.");
     }
   }
 

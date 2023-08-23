@@ -15,59 +15,72 @@ public class PingEdgeNodeCheck {
 
   public String selectPingableEdgeNode(List<String> hosts, int initialIndex, int timeout)
     throws NoLiveEdgeNodeException {
-    int attemptsNumber = 0;
-    while (attemptsNumber < hosts.size()) {
+    for (int attemptsNumber = 0; attemptsNumber < hosts.size(); attemptsNumber++) {
       String hostToCheck = hosts.get((initialIndex + attemptsNumber) % hosts.size());
-      String checkedHost = runNodePingCheck(hostToCheck, timeout);
-      if (checkedHost != null) {
-        return checkedHost;
+      if (pingNode(hostToCheck, timeout)) {
+        return hostToCheck;
       }
-      attemptsNumber++;
     }
     throw new NoLiveEdgeNodeException(EdgeNodeCheckType.PING, hosts, timeout);
   }
 
-  String runNodePingCheck(String hostToCheck, int timeout) {
+  boolean pingNode(String hostToCheck, int timeout) {
     try {
-      Process p = runNodePingCommand(hostToCheck);
-      boolean waitResult = p.waitFor(timeout, TimeUnit.MILLISECONDS);
-      if (waitResult) {
-        int ec = p.exitValue();
-        if (ec == 0) {
-          if (LOG.isTraceEnabled()) {
-            LOG.trace("Edge node '" + hostToCheck + "' check passed. Error: " +
-              getProcessError(p) + ". Output: " + getProcessOutput(p));
-          }
-          return hostToCheck;
-        } else {
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Edge node '" + hostToCheck + "' check failed with exit code " + ec + ". Error: " +
-              getProcessError(p) + ". Output: " + getProcessOutput(p));
-          }
-        }
-      } else {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Edge node '" + hostToCheck + "' check timeout after " + timeout + " seconds. Error: " +
-            getProcessError(p) + ". Output: " + getProcessOutput(p));
-        }
+      // we need guarantee that proces won't hang and kill it if timeout is significantly exceeded
+      int processTimeout = timeout * 2;
+
+      Process p = getRuntime().exec(String.format("ping -n -c 1 -w %d %s", timeout, hostToCheck));
+      boolean waitResult = p.waitFor(processTimeout, TimeUnit.SECONDS);
+
+      if (!waitResult) {
+        logTimeoutPing(hostToCheck, processTimeout, p);
+        return false;
       }
+
+      int ec = p.exitValue();
+      if (ec > 0) {
+        logFailedPing(hostToCheck, ec, p);
+        return false;
+      }
+
+      logSuccessPing(hostToCheck, p);
+      return true;
     } catch (IOException | InterruptedException e) {
       LOG.error(e.getMessage(), e);
+      return false;
     }
-    return null;
   }
 
-  Process runNodePingCommand(String hostToCheck) throws IOException {
-    return Runtime.getRuntime().exec("ping -c 1 " + hostToCheck);
+  Runtime getRuntime () {
+    return Runtime.getRuntime();
   }
 
   private static String getProcessOutput(Process p) {
-    return new BufferedReader(new InputStreamReader(p.getInputStream())).lines()
-      .collect(Collectors.joining("\n"));
+    return new BufferedReader(new InputStreamReader(p.getInputStream())).lines().collect(Collectors.joining("\n"));
   }
 
   private static String getProcessError(Process p) {
-    return new BufferedReader(new InputStreamReader(p.getErrorStream())).lines()
-      .collect(Collectors.joining("\n"));
+    return new BufferedReader(new InputStreamReader(p.getErrorStream())).lines().collect(Collectors.joining("\n"));
+  }
+
+  private static void logSuccessPing(String hostToCheck, Process p) {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(String.format("Edge node '%s' check passed. Error: %s. Output: %s",
+        hostToCheck, getProcessError(p), getProcessOutput(p)));
+    }
+  }
+
+  private static void logFailedPing(String hostToCheck, int exitCode, Process p) {
+    if (LOG.isWarnEnabled()) {
+      LOG.warn(String.format("Edge node '%s' check failed with exit code %d. Error: %s. Output: %s",
+        hostToCheck, exitCode, getProcessError(p), getProcessOutput(p)));
+    }
+  }
+
+  private static void logTimeoutPing(String hostToCheck, int processTimeout, Process p) {
+    if (LOG.isWarnEnabled()) {
+      LOG.warn(String.format("Edge node '%s' check process timeout after %d seconds. Error: %s. Output: %s",
+        hostToCheck, processTimeout, getProcessError(p), getProcessOutput(p)));
+    }
   }
 }

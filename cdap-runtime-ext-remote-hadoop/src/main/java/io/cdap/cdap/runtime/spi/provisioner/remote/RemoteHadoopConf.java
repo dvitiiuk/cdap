@@ -36,8 +36,6 @@ public class RemoteHadoopConf {
   private final EdgeNodeCheckType edgeNodeCheckType;
   private final int timeout;
 
-  private static final int DEFAULT_CHECK_TIMEOUT = 5000;
-
   private RemoteHadoopConf(SSHKeyPair sshKeyPair, String host, @Nullable String initializationAction,
                            @Nullable String kerberosPrincipal, @Nullable String kerberosKeytabPath,
                            EdgeNodeCheckType edgeNodeCheckType, Integer timeout) {
@@ -92,7 +90,7 @@ public class RemoteHadoopConf {
     SSHKeyPair keyPair = new SSHKeyPair(new SSHPublicKey(user, ""),
                                         () -> privateKey.getBytes(StandardCharsets.UTF_8));
 
-    EdgeNodeCheckType edgeNodeCheckType = EdgeNodeCheckType.getEdgeNodeCheck(properties.get("edgeNodeCheckMethod"));
+    EdgeNodeCheckType edgeNodeCheckType = EdgeNodeCheckType.fromString(properties.get("edgeNodeCheckMethod"));
     int checkTimeout = parseCheckTimeout(properties.get("checkTimeout"));
 
     return new RemoteHadoopConf(keyPair, host, properties.get("initializationAction"),
@@ -112,8 +110,8 @@ public class RemoteHadoopConf {
   private static int parseCheckTimeout(String value) {
     try {
       return Integer.parseInt(value);
-    } catch (Exception e) {
-      return DEFAULT_CHECK_TIMEOUT;
+    } catch (NumberFormatException e) {
+      throw new IllegalArgumentException("Invalid check timeout: " + value, e);
     }
   }
 }

@@ -74,32 +74,32 @@
       ]
     },
     {
-      "label": "Edge node check settings",
+      "label": "Edge node load-balancing settings",
       "properties": [
         {
           "widget-type": "radio-group",
-          "label": "Edge node check method",
-          "name": "edgeNodeCheckMethod",
+          "label": "Load-balancing method",
+          "name": "loadBalancingMethod",
           "required": true,
           "description": "Algorithm should be used to check edge node before a pipeline run.",
           "widget-attributes": {
             "layout": "inline",
-            "default": "ping",
+            "default": "roundRobinPing",
             "options": [
               {
-                "id": "none",
-                "label": "No check"
+                "id": "roundRobin",
+                "label": "Round-Robin"
               },
               {
-                "id": "ping",
-                "label": "Check host is reachable (ping)"
+                "id": "roundRobinPing",
+                "label": "Round-Robin for accessible hosts (ping check)"
               }
             ]
           }
         },
         {
           "widget-type": "number",
-          "label": "Pipeline pre-run host check timeout",
+          "label": "Host accessibility check timeout (seconds)",
           "name": "checkTimeout",
           "required": true,
           "description": "Timeout in seconds to check edge node before pipeline run.",

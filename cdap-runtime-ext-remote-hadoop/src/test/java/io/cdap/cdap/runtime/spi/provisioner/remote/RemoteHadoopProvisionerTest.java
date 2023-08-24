@@ -65,7 +65,7 @@ public class RemoteHadoopProvisionerTest {
     properties.put(RemoteHadoopConf.HOST_PROPERTY_NAME, String.join(",", testEdgeNodes));
     properties.put(RemoteHadoopConf.USER_PROPERTY_NAME, "dummyUser");
     properties.put(RemoteHadoopConf.SSH_KEY_PROPERTY_NAME, "dummyKey");
-    properties.put(RemoteHadoopConf.EDGE_NODE_CHECK_METHOD_PROPERTY_NAME, EdgeNodeCheckType.NONE.toString());
+    properties.put(RemoteHadoopConf.LOAD_BALANCING_METHOD_PROPERTY_NAME, LoadBalancingMethod.ROUND_ROBIN.toString());
 
     return RemoteHadoopConf.fromProperties(properties);
   }

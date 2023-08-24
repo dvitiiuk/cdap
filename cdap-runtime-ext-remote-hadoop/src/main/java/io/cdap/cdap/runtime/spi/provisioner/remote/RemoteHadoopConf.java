@@ -31,7 +31,7 @@ public class RemoteHadoopConf {
   public static final String HOST_PROPERTY_NAME = "host";
   public static final String USER_PROPERTY_NAME = "user";
   public static final String SSH_KEY_PROPERTY_NAME = "sshKey";
-  public static final String EDGE_NODE_CHECK_METHOD_PROPERTY_NAME = "edgeNodeCheckMethod";
+  public static final String LOAD_BALANCING_METHOD_PROPERTY_NAME = "loadBalancingMethod";
   public static final String CHECK_TIMEOUT_PROPERTY_NAME = "checkTimeout";
   public static final String INITIALIZATION_ACTION_PROPERTY_NAME = "initializationAction";
   public static final String KERBEROS_PRINCIPAL_PROPERTY_NAME = "kerberosPrincipal";
@@ -42,18 +42,18 @@ public class RemoteHadoopConf {
   private final String initializationAction;
   private final String kerberosKeytabPath;
   private final String kerberosPrincipal;
-  private final EdgeNodeCheckType edgeNodeCheckType;
+  private final LoadBalancingMethod loadBalancingMethod;
   private final int timeout;
 
   private RemoteHadoopConf(SSHKeyPair sshKeyPair, String host, @Nullable String initializationAction,
                            @Nullable String kerberosPrincipal, @Nullable String kerberosKeytabPath,
-                           EdgeNodeCheckType edgeNodeCheckType, Integer timeout) {
+                           LoadBalancingMethod loadBalancingMethod, Integer timeout) {
     this.sshKeyPair = sshKeyPair;
     this.host = host;
     this.initializationAction = initializationAction;
     this.kerberosKeytabPath = kerberosKeytabPath;
     this.kerberosPrincipal = kerberosPrincipal;
-    this.edgeNodeCheckType = edgeNodeCheckType;
+    this.loadBalancingMethod = loadBalancingMethod;
     this.timeout = timeout;
   }
 
@@ -80,8 +80,8 @@ public class RemoteHadoopConf {
     return kerberosPrincipal;
   }
 
-  public EdgeNodeCheckType getEdgeNodeCheck() {
-    return edgeNodeCheckType;
+  public LoadBalancingMethod getEdgeNodeCheck() {
+    return loadBalancingMethod;
   }
 
   public int getTimeout() {
@@ -99,14 +99,14 @@ public class RemoteHadoopConf {
     SSHKeyPair keyPair = new SSHKeyPair(new SSHPublicKey(user, ""),
                                         () -> privateKey.getBytes(StandardCharsets.UTF_8));
 
-    EdgeNodeCheckType edgeNodeCheckType = EdgeNodeCheckType
-      .fromString(properties.get(EDGE_NODE_CHECK_METHOD_PROPERTY_NAME));
+    LoadBalancingMethod loadBalancingMethod = LoadBalancingMethod
+      .fromString(properties.get(LOAD_BALANCING_METHOD_PROPERTY_NAME));
     int checkTimeout = parseCheckTimeout(properties.get(CHECK_TIMEOUT_PROPERTY_NAME));
 
     return new RemoteHadoopConf(keyPair, host, properties.get(INITIALIZATION_ACTION_PROPERTY_NAME),
                                 properties.get(KERBEROS_PRINCIPAL_PROPERTY_NAME),
                                 properties.get(KERBEROS_KEYTAB_PATH_PROPERTY_NAME),
-      edgeNodeCheckType, checkTimeout);
+      loadBalancingMethod, checkTimeout);
   }
 
   private static String getString(Map<String, String> properties, String key) {

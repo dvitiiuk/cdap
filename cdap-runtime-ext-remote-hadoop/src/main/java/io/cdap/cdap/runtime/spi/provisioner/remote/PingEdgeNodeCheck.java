@@ -21,7 +21,7 @@ public class PingEdgeNodeCheck {
         return hostToCheck;
       }
     }
-    throw new NoLiveEdgeNodeException(EdgeNodeCheckType.PING, hosts, timeout);
+    throw new NoLiveEdgeNodeException(LoadBalancingMethod.ROUND_ROBIN_PING, hosts, timeout);
   }
 
   boolean pingNode(String hostToCheck, int timeout) {

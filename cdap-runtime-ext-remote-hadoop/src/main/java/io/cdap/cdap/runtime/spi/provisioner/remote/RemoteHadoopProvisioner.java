@@ -161,16 +161,17 @@ public class RemoteHadoopProvisioner implements Provisioner {
     return host;
   }
 
-  String selectCheckedEdgeNode(List<String> hosts, int initialIndex, EdgeNodeCheckType edgeNodeCheckType, int timeout)
+  String selectCheckedEdgeNode(List<String> hosts, int initialIndex, LoadBalancingMethod loadBalancingMethod,
+                               int timeout)
     throws NoLiveEdgeNodeException {
-    LOG.trace(edgeNodeCheckType + " check type is used");
-    switch (edgeNodeCheckType) {
-      case NONE:
+    LOG.trace(String.format("'%s' check type is used", loadBalancingMethod.getName()));
+    switch (loadBalancingMethod) {
+      case ROUND_ROBIN:
         return hosts.get(initialIndex % hosts.size());
-      case PING:
+      case ROUND_ROBIN_PING:
         return PING_EDGE_NODE_CHECK.selectPingableEdgeNode(hosts, initialIndex, timeout);
       default:
-        throw new IllegalArgumentException("Edge Node check option '" + edgeNodeCheckType + "' is not supported.");
+        throw new IllegalArgumentException("Edge Node check option '" + loadBalancingMethod + "' is not supported.");
     }
   }
 

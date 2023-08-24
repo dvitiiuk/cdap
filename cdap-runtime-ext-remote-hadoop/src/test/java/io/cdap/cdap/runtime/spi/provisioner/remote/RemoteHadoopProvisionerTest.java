@@ -66,6 +66,7 @@ public class RemoteHadoopProvisionerTest {
     properties.put(RemoteHadoopConf.USER_PROPERTY_NAME, "dummyUser");
     properties.put(RemoteHadoopConf.SSH_KEY_PROPERTY_NAME, "dummyKey");
     properties.put(RemoteHadoopConf.LOAD_BALANCING_METHOD_PROPERTY_NAME, LoadBalancingMethod.ROUND_ROBIN.toString());
+    properties.put(RemoteHadoopConf.CHECK_TIMEOUT_PROPERTY_NAME, "1");
 
     return RemoteHadoopConf.fromProperties(properties);
   }

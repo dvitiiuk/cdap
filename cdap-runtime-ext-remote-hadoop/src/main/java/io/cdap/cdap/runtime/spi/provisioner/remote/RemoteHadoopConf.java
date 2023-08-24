@@ -28,6 +28,15 @@ import javax.annotation.Nullable;
  * Configuration for the Remote Hadoop provisioner.
  */
 public class RemoteHadoopConf {
+  public static final String HOST_PROPERTY_NAME = "host";
+  public static final String USER_PROPERTY_NAME = "user";
+  public static final String SSH_KEY_PROPERTY_NAME = "sshKey";
+  public static final String EDGE_NODE_CHECK_METHOD_PROPERTY_NAME = "edgeNodeCheckMethod";
+  public static final String CHECK_TIMEOUT_PROPERTY_NAME = "checkTimeout";
+  public static final String INITIALIZATION_ACTION_PROPERTY_NAME = "initializationAction";
+  public static final String KERBEROS_PRINCIPAL_PROPERTY_NAME = "kerberosPrincipal";
+  public static final String KERBEROS_KEYTAB_PATH_PROPERTY_NAME = "kerberosKeytabPath";
+
   private final SSHKeyPair sshKeyPair;
   private final String host;
   private final String initializationAction;
@@ -83,19 +92,20 @@ public class RemoteHadoopConf {
    * Create the conf from a property map while also performing validation.
    */
   public static RemoteHadoopConf fromProperties(Map<String, String> properties) {
-    String host = getString(properties, "host");
-    String user = getString(properties, "user");
-    String privateKey = getString(properties, "sshKey");
+    String host = getString(properties, HOST_PROPERTY_NAME);
+    String user = getString(properties, USER_PROPERTY_NAME);
+    String privateKey = getString(properties, SSH_KEY_PROPERTY_NAME);
 
     SSHKeyPair keyPair = new SSHKeyPair(new SSHPublicKey(user, ""),
                                         () -> privateKey.getBytes(StandardCharsets.UTF_8));
 
-    EdgeNodeCheckType edgeNodeCheckType = EdgeNodeCheckType.fromString(properties.get("edgeNodeCheckMethod"));
-    int checkTimeout = parseCheckTimeout(properties.get("checkTimeout"));
+    EdgeNodeCheckType edgeNodeCheckType = EdgeNodeCheckType
+      .fromString(properties.get(EDGE_NODE_CHECK_METHOD_PROPERTY_NAME));
+    int checkTimeout = parseCheckTimeout(properties.get(CHECK_TIMEOUT_PROPERTY_NAME));
 
-    return new RemoteHadoopConf(keyPair, host, properties.get("initializationAction"),
-                                properties.get("kerberosPrincipal"),
-                                properties.get("kerberosKeytabPath"),
+    return new RemoteHadoopConf(keyPair, host, properties.get(INITIALIZATION_ACTION_PROPERTY_NAME),
+                                properties.get(KERBEROS_PRINCIPAL_PROPERTY_NAME),
+                                properties.get(KERBEROS_KEYTAB_PATH_PROPERTY_NAME),
       edgeNodeCheckType, checkTimeout);
   }
 

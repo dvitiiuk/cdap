@@ -59,6 +59,7 @@ public class RemoteHadoopProvisioner implements Provisioner {
 
   static final ConcurrentHashMap<String, Integer> LATEST_EDGE_NODE = new ConcurrentHashMap<>();
   private static final String HOSTS_SEPARATOR = ",";
+  private static final PingEdgeNodeCheck PING_EDGE_NODE_CHECK = new PingEdgeNodeCheck();
 
   @Override
   public ProvisionerSpecification getSpec() {
@@ -167,7 +168,7 @@ public class RemoteHadoopProvisioner implements Provisioner {
       case NONE:
         return hosts.get(initialIndex % hosts.size());
       case PING:
-        return new PingEdgeNodeCheck().selectPingableEdgeNode(hosts, initialIndex, timeout);
+        return PING_EDGE_NODE_CHECK.selectPingableEdgeNode(hosts, initialIndex, timeout);
       default:
         throw new IllegalArgumentException("Edge Node check option '" + edgeNodeCheckType + "' is not supported.");
     }

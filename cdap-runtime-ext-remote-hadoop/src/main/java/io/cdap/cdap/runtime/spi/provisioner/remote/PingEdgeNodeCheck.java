@@ -26,7 +26,7 @@ public class PingEdgeNodeCheck {
 
   boolean pingNode(String hostToCheck, int timeout) {
     try {
-      // we need guarantee that proces won't hang and kill it if timeout is significantly exceeded
+      // we need guarantee that process won't hang and kill it if timeout is significantly exceeded
       int processTimeout = timeout * 2;
 
       Process p = getRuntime().exec(String.format("ping -n -c 1 -w %d %s", timeout, hostToCheck));

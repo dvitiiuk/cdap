@@ -132,7 +132,7 @@ public class RemoteHadoopProvisioner implements Provisioner {
 
   String selectEdgeNode(RemoteHadoopConf conf, String profileName, ProgramRunInfo programRunInfo)
     throws NoLiveEdgeNodeException {
-    String selectedHost;
+    String host;
     String hostConfigValue = conf.getHost();
     LOG.debug("Retrieved edge nodes: " + hostConfigValue + " for profile: " + profileName);
     if (LOG.isTraceEnabled()) {
@@ -147,17 +147,17 @@ public class RemoteHadoopProvisioner implements Provisioner {
       if (LOG.isTraceEnabled()) {
         LOG.trace("All profile counters are: " + LATEST_EDGE_NODE.toString());
       }
-      selectedHost = selectCheckedEdgeNode(hosts, counterValue, conf.getEdgeNodeCheck(), conf.getTimeout());
+      host = selectCheckedEdgeNode(hosts, counterValue, conf.getEdgeNodeCheck(), conf.getTimeout());
     } else {
-      selectedHost = hostConfigValue;
+      host = hostConfigValue;
     }
     if (LOG.isInfoEnabled()) {
       LOG.info("Pipeline: " + (programRunInfo == null ? null : programRunInfo.getApplication()) +
         ", namespace: " + (programRunInfo == null ? null : programRunInfo.getNamespace()) +
-        " will be run on edge node: " + selectedHost +
+        " will be run on edge node: " + host +
         " from profile: " + profileName);
     }
-    return selectedHost;
+    return host;
   }
 
   String selectCheckedEdgeNode(List<String> hosts, int initialIndex, EdgeNodeCheckType edgeNodeCheckType, int timeout)

@@ -3,7 +3,6 @@ package io.cdap.cdap.runtime.spi.provisioner.remote;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
@@ -28,10 +27,10 @@ public class JavaSocketEdgeNodeCheck {
     try (Socket s = new Socket()) {
       s.connect(new InetSocketAddress(hostToCheck, CHECK_PORT), timeout);
 
-      LOG.debug(String.format("Edge node '%s' check passed.", hostToCheck));
+      LOG.debug(String.format("Edge node '%s' check passed for timeout '%d'.", hostToCheck, timeout));
       return true;
     } catch (SocketTimeoutException e) {
-      LOG.warn(String.format("Edge node '%s' check timeout after %d milliseconds. Message: %s",
+      LOG.warn(String.format("Edge node '%s' check timeout after '%d' milliseconds. Message: %s",
         hostToCheck, timeout, e.getMessage()));
     } catch (Exception e) {
       // print full stacktrace as there can be numerous reasons of failure

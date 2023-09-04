@@ -59,6 +59,7 @@ public class RemoteHadoopProvisioner implements Provisioner {
 
   static final ConcurrentHashMap<String, Integer> LATEST_EDGE_NODE = new ConcurrentHashMap<>();
   private static final String HOSTS_SEPARATOR = ",";
+  private static final PingEdgeNodeCheck PING_EDGE_NODE_CHECK = new PingEdgeNodeCheck();
 
   @Override
   public ProvisionerSpecification getSpec() {
@@ -113,9 +114,9 @@ public class RemoteHadoopProvisioner implements Provisioner {
   }
 
   @Override
-  public Cluster createCluster(ProvisionerContext context) {
+  public Cluster createCluster(ProvisionerContext context) throws NoLiveEdgeNodeException {
     RemoteHadoopConf conf = RemoteHadoopConf.fromProperties(context.getProperties());
-    String host = selectEdgeNode(conf.getHost(), context.getProfileName(), context.getProgramRunInfo());
+    String host = selectEdgeNode(conf, context.getProfileName(), context.getProgramRunInfo());
     context.getSSHContext().setSSHKeyPair(conf.getKeyPair());
     Collection<Node> nodes = Collections.singletonList(new Node(host, Node.Type.MASTER, host,
                                                                 0, Collections.emptyMap()));
@@ -130,8 +131,10 @@ public class RemoteHadoopProvisioner implements Provisioner {
     return new Cluster(host, ClusterStatus.RUNNING, nodes, properties);
   }
 
-  String selectEdgeNode(String hostConfigValue, String profileName, ProgramRunInfo programRunInfo) {
+  String selectEdgeNode(RemoteHadoopConf conf, String profileName, ProgramRunInfo programRunInfo)
+    throws NoLiveEdgeNodeException {
     String host;
+    String hostConfigValue = conf.getHost();
     LOG.debug("Retrieved edge nodes: " + hostConfigValue + " for profile: " + profileName);
     if (LOG.isTraceEnabled()) {
       LOG.trace("Program to provision: " + programRunInfo);
@@ -145,7 +148,7 @@ public class RemoteHadoopProvisioner implements Provisioner {
       if (LOG.isTraceEnabled()) {
         LOG.trace("All profile counters are: " + LATEST_EDGE_NODE.toString());
       }
-      host = hosts.get(counterValue % hosts.size());
+      host = selectCheckedEdgeNode(hosts, counterValue, conf.getEdgeNodeCheck(), conf.getTimeout());
     } else {
       host = hostConfigValue;
     }
@@ -156,6 +159,20 @@ public class RemoteHadoopProvisioner implements Provisioner {
         " from profile: " + profileName);
     }
     return host;
+  }
+
+  String selectCheckedEdgeNode(List<String> hosts, int initialIndex, LoadBalancingMethod loadBalancingMethod,
+                               int timeout)
+    throws NoLiveEdgeNodeException {
+    LOG.trace(String.format("'%s' check type is used", loadBalancingMethod.getName()));
+    switch (loadBalancingMethod) {
+      case ROUND_ROBIN:
+        return hosts.get(initialIndex % hosts.size());
+      case ROUND_ROBIN_PING:
+        return PING_EDGE_NODE_CHECK.selectPingableEdgeNode(hosts, initialIndex, timeout);
+      default:
+        throw new IllegalArgumentException("Edge Node check option '" + loadBalancingMethod + "' is not supported.");
+    }
   }
 
   @Override

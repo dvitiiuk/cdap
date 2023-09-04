@@ -11,12 +11,12 @@
       "properties": [
         {
           "widget-type": "textbox",
-          "label": "Host",
+          "label": "Host(s)",
           "name": "host",
           "required": true,
-          "description": "The edge node to connect to when launching jobs.",
+          "description": "The edge node(s) to connect to when launching jobs. Multiple edge nodes separated by semicolon can be used",
           "widget-attributes": {
-            "placeholder": "Specify the host to connect to"
+            "placeholder": "Specify the host(s) to connect to"
           }
         },
         {
@@ -69,6 +69,43 @@
           "description": "The file path to the Kerberos keytab file. The file path must exist on the master node of the Hadoop cluster",
           "widget-attributes": {
             "placeholder": "Specify the Kerberos keytab path"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Edge node load-balancing settings",
+      "properties": [
+        {
+          "widget-type": "radio-group",
+          "label": "Load-balancing method",
+          "name": "loadBalancingMethod",
+          "required": true,
+          "description": "Algorithm should be used to check edge node before a pipeline run.",
+          "widget-attributes": {
+            "layout": "inline",
+            "default": "roundRobinSocket",
+            "options": [
+              {
+                "id": "roundRobin",
+                "label": "Round-Robin"
+              },
+              {
+                "id": "roundRobinSocket",
+                "label": "Round-Robin for accessible hosts (java socket check)"
+              }
+            ]
+          }
+        },
+        {
+          "widget-type": "number",
+          "label": "Host accessibility check timeout (milliseconds)",
+          "name": "checkTimeout",
+          "required": true,
+          "description": "Timeout in milliseconds to check edge node before pipeline run.",
+          "widget-attributes": {
+            "default": "5000",
+            "min": "1"
           }
         }
       ]

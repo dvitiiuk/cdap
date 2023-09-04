@@ -171,7 +171,7 @@ public class RemoteHadoopProvisioner implements Provisioner {
       case ROUND_ROBIN_SOCKET:
         return JAVA_SOCKET_EDGE_NODE_CHECK.selectCheckedEdgeNode(hosts, initialIndex, timeout);
       default:
-        throw new IllegalArgumentException("Edge Node check option '" + loadBalancingMethod + "' is not supported.");
+        throw new IllegalArgumentException("Load-balancing method '" + loadBalancingMethod + "' is not supported.");
     }
   }
 

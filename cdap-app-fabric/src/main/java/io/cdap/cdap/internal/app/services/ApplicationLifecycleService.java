@@ -856,6 +856,12 @@ public class ApplicationLifecycleService extends AbstractIdleService {
    * @param appSpec the {@link ApplicationSpecification} of the application to be removed
    */
   private void removeAppInternal(ApplicationId applicationId, ApplicationSpecification appSpec) throws Exception {
+    LOG.info("Pipeline action: delete, user: {}, namespace: {}, pipeline: {}, version: {}",
+      authenticationContext.getPrincipal(),
+      applicationId.getNamespace(),
+      applicationId.getApplication(),
+      applicationId.getVersion());
+
     // if the application has only one version, do full deletion, else only delete the specified version
     if (store.getAllAppVersions(applicationId).size() == 1) {
       deleteApp(applicationId, appSpec);

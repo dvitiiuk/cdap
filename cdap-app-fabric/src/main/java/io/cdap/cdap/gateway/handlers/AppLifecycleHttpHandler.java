@@ -663,6 +663,11 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
     // to populate SecurityRequestContext while http chunk doesn't. BodyConsumer runs in the thread
     // that processes the last http chunk.
     accessEnforcer.enforce(appId, authenticationContext.getPrincipal(), StandardPermission.CREATE);
+    LOG.info("Pipeline action: deploy or configure, user: {}, namespace: {}, pipeline: {}, version: {}",
+      authenticationContext.getPrincipal(),
+      appId.getNamespace(),
+      appId.getApplication(),
+      appId.getVersion());
 
     // createTempFile() needs a prefix of at least 3 characters
     return new AbstractBodyConsumer(File.createTempFile("apprequest-" + appId, ".json", tmpDir)) {

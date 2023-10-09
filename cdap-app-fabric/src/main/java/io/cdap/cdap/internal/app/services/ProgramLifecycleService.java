@@ -448,6 +448,13 @@ public class ProgramLifecycleService {
    */
   public RunId run(ProgramId programId, Map<String, String> overrides, boolean debug) throws Exception {
     accessEnforcer.enforce(programId, authenticationContext.getPrincipal(), ApplicationPermission.EXECUTE);
+    LOG.info("Pipeline action: run, user: {}, namespace: {}, pipeline: {}, program: {}, type: {}, version: {}",
+      authenticationContext.getPrincipal(),
+      programId.getNamespace(),
+      programId.getApplication(),
+      programId.getProgram(),
+      programId.getType(),
+      programId.getVersion());
     checkConcurrentExecution(programId);
 
     Map<String, String> sysArgs = propertiesResolver.getSystemProperties(programId);

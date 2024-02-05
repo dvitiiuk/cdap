@@ -38,6 +38,9 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 public class DatasetsUtilTest extends DatasetServiceTestBase {
@@ -72,6 +75,90 @@ public class DatasetsUtilTest extends DatasetServiceTestBase {
             TableProperties.builder().setColumnFamily("fam").build());
     testFix("indexedTable",
             DatasetProperties.builder().add(IndexedTable.INDEX_COLUMNS_CONF_KEY, "a,c").build());
+  }
+
+  @Test
+  public void testNotRemoveSensitivePropertiesAndSensitiveProperties() {
+    List<String> ignoredPrefixes = Collections.emptyList();
+    DatasetDefinition def = DatasetFrameworkTestUtil.getDatasetDefinition(inMemoryDatasetFramework,
+      NamespaceId.DEFAULT, "keyValueTable");
+
+    DatasetProperties dProperties = DatasetProperties.builder()
+      .add("prop1", "value1")
+      .add("prop2", "value2")
+      .build();
+    DatasetSpecification spec = def.configure("testInstanceName", dProperties)
+      .setOriginalProperties(dProperties);
+
+    DatasetSpecification resultSpecification = DatasetsUtil.removeSensitiveProperties(spec, ignoredPrefixes);
+
+    Assert.assertEquals(dProperties.getProperties(), resultSpecification.getProperties());
+    Assert.assertEquals(dProperties.getProperties(), resultSpecification.getOriginalProperties());
+  }
+
+  @Test
+  public void testRemoveSensitivePropertiesAndSensitiveProperties() {
+    List<String> ignoredPrefixes = Arrays.asList("prefix1", "prefix2");
+    DatasetDefinition def = DatasetFrameworkTestUtil.getDatasetDefinition(inMemoryDatasetFramework,
+      NamespaceId.DEFAULT, "keyValueTable");
+
+    DatasetProperties resultProperties = DatasetProperties.builder()
+      .add("prefix3.prop", "value3")
+      .build();
+
+    DatasetProperties dProperties = DatasetProperties.builder()
+      .add("prefix1.prop", "value1")
+      .add("prefix2.prop", "value2")
+      .add("prefix3.prop", "value3")
+      .build();
+    DatasetSpecification spec = def.configure("testInstanceName", dProperties)
+      .setOriginalProperties(dProperties);
+
+    DatasetSpecification resultSpecification = DatasetsUtil.removeSensitiveProperties(spec, ignoredPrefixes);
+
+    Assert.assertEquals(resultProperties.getProperties(), resultSpecification.getProperties());
+    Assert.assertEquals(resultProperties.getProperties(), resultSpecification.getOriginalProperties());
+  }
+
+  @Test
+  public void testNotRemoveSensitiveProperties() {
+    List<String> ignoredPrefixes = Collections.emptyList();
+    DatasetDefinition def = DatasetFrameworkTestUtil.getDatasetDefinition(inMemoryDatasetFramework,
+      NamespaceId.DEFAULT, "keyValueTable");
+
+    DatasetProperties dProperties = DatasetProperties.builder()
+      .add("prop1", "value1")
+      .add("prop2", "value2")
+      .build();
+    DatasetSpecification spec = def.configure("testInstanceName", dProperties);
+
+    DatasetSpecification resultSpecification = DatasetsUtil.removeSensitiveProperties(spec, ignoredPrefixes);
+
+    Assert.assertEquals(dProperties.getProperties(), resultSpecification.getProperties());
+    Assert.assertNull(resultSpecification.getOriginalProperties());
+  }
+
+  @Test
+  public void testRemoveSensitiveProperties() {
+    List<String> ignoredPrefixes = Arrays.asList("prefix1", "prefix2");
+    DatasetDefinition def = DatasetFrameworkTestUtil.getDatasetDefinition(inMemoryDatasetFramework,
+      NamespaceId.DEFAULT, "keyValueTable");
+
+    DatasetProperties resultProperties = DatasetProperties.builder()
+      .add("prefix3.prop", "value3")
+      .build();
+
+    DatasetProperties dProperties = DatasetProperties.builder()
+      .add("prefix1.prop", "value1")
+      .add("prefix2.prop", "value2")
+      .add("prefix3.prop", "value3")
+      .build();
+    DatasetSpecification spec = def.configure("testInstanceName", dProperties);
+
+    DatasetSpecification resultSpecification = DatasetsUtil.removeSensitiveProperties(spec, ignoredPrefixes);
+
+    Assert.assertEquals(resultProperties.getProperties(), resultSpecification.getProperties());
+    Assert.assertNull(resultSpecification.getOriginalProperties());
   }
 
   private void testFix(String type, DatasetProperties props) {

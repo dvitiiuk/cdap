@@ -18,6 +18,7 @@ package io.cdap.cdap.data2.datafabric.dataset.service;
 
 import com.google.common.collect.ImmutableMap;
 import io.cdap.cdap.common.NotFoundException;
+import io.cdap.cdap.common.conf.CConfiguration;
 import io.cdap.cdap.proto.DatasetInstanceConfiguration;
 import io.cdap.cdap.proto.DatasetMeta;
 import io.cdap.cdap.proto.id.NamespaceId;
@@ -25,7 +26,10 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.List;
 
 public class DatasetInstanceServiceTest extends DatasetServiceTestBase {
 
@@ -75,4 +79,43 @@ public class DatasetInstanceServiceTest extends DatasetServiceTestBase {
     Assert.assertEquals(meta.getSpec(), met2.getSpec());
   }
 
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testGetDatasetPrefixesToIgnore() throws NoSuchMethodException, InvocationTargetException,
+    IllegalAccessException {
+    String testPrefix1 = "name1.name2";
+    String testPrefix2 = "name3.name4";
+
+    CConfiguration testConf = CConfiguration.create();
+    testConf.set(DatasetInstanceService.IGNORE_PREFIXES_CONFIG, String.join("",
+      testPrefix1,
+      " ",
+      DatasetInstanceService.IGNORE_PREFIXES_SEPARATOR,
+      " ",
+      testPrefix2));
+
+    List<String> testPrefixes = (List<String>) getGetDatasetPrefixesToIgnoreMethod().invoke(instanceService, testConf);
+
+    Assert.assertEquals(2, testPrefixes.size());
+    Assert.assertTrue(testPrefixes.contains(testPrefix1));
+    Assert.assertTrue(testPrefixes.contains(testPrefix2));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testGetEmptyDatasetPrefixesToIgnore() throws NoSuchMethodException, InvocationTargetException,
+    IllegalAccessException {
+    CConfiguration testConf = CConfiguration.create();
+
+    List<String> testPrefixes = (List<String>) getGetDatasetPrefixesToIgnoreMethod().invoke(instanceService, testConf);
+
+    Assert.assertTrue(testPrefixes.isEmpty());
+  }
+
+  private Method getGetDatasetPrefixesToIgnoreMethod() throws NoSuchMethodException {
+    Method getDatasetPrefixesToIgnoreMethod =
+      instanceService.getClass().getDeclaredMethod("getDatasetPrefixesToIgnore", CConfiguration.class);
+    getDatasetPrefixesToIgnoreMethod.setAccessible(true);
+    return getDatasetPrefixesToIgnoreMethod;
+  }
 }

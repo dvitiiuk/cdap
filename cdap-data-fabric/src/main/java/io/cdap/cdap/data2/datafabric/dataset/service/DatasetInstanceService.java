@@ -31,6 +31,7 @@ import io.cdap.cdap.common.DatasetTypeNotFoundException;
 import io.cdap.cdap.common.HandlerException;
 import io.cdap.cdap.common.NamespaceNotFoundException;
 import io.cdap.cdap.common.NotFoundException;
+import io.cdap.cdap.common.conf.CConfiguration;
 import io.cdap.cdap.common.namespace.NamespaceQueryAdmin;
 import io.cdap.cdap.data.runtime.DataSetServiceModules;
 import io.cdap.cdap.data2.audit.AuditPublisher;
@@ -69,10 +70,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
@@ -95,6 +100,11 @@ public class DatasetInstanceService {
   private AuditPublisher auditPublisher;
   private MetadataServiceClient metadataServiceClient;
 
+  private final List<String> ignoredPrefixes;
+
+  public static final String IGNORE_PREFIXES_CONFIG = "dataset.list.prefixes.ignore";
+  public static final String IGNORE_PREFIXES_SEPARATOR = ",";
+
   @VisibleForTesting
   @Inject
   public DatasetInstanceService(DatasetTypeService authorizationDatasetTypeService,
@@ -105,7 +115,8 @@ public class DatasetInstanceService {
                                 NamespaceQueryAdmin namespaceQueryAdmin, OwnerAdmin ownerAdmin,
                                 AccessEnforcer accessEnforcer,
                                 AuthenticationContext authenticationContext,
-                                MetadataServiceClient metadataServiceClient) {
+                                MetadataServiceClient metadataServiceClient,
+                                CConfiguration configuration) {
     this.opExecutorClient = opExecutorClient;
     this.authorizationDatasetTypeService = authorizationDatasetTypeService;
     this.noAuthDatasetTypeService = noAuthDatasetTypeService;
@@ -124,6 +135,7 @@ public class DatasetInstanceService {
     );
     this.accessEnforcer = accessEnforcer;
     this.authenticationContext = authenticationContext;
+    this.ignoredPrefixes = getDatasetPrefixesToIgnore(configuration);
   }
 
   @VisibleForTesting
@@ -144,7 +156,21 @@ public class DatasetInstanceService {
     ensureNamespaceExists(namespace);
     accessEnforcer.enforceOnParent(EntityType.DATASET, namespace, authenticationContext.getPrincipal(),
                                    StandardPermission.LIST);
-    return instanceManager.getAll(namespace);
+
+    Collection<DatasetSpecification> result = instanceManager.getAll(namespace);
+    LOG.info("RETRIEVED DATASETS: " + result);
+
+    try {
+      accessEnforcer.enforceOnParent(EntityType.DATASET, namespace, authenticationContext.getPrincipal(),
+        StandardPermission.GET);
+    } catch (UnauthorizedException e) {
+      LOG.info("DATASET LIST TEST AUTH EXCEPTION: " + e.getMessage());
+      return result.stream()
+        .map(datasetSpecification -> DatasetsUtil.removeSensitiveProperties(datasetSpecification, ignoredPrefixes))
+        .collect(Collectors.toList());
+    }
+
+    return result;
   }
 
   /**
@@ -161,7 +187,19 @@ public class DatasetInstanceService {
     ensureNamespaceExists(namespace);
     accessEnforcer.enforceOnParent(EntityType.DATASET, namespace, authenticationContext.getPrincipal(),
                                    StandardPermission.LIST);
-    return instanceManager.get(namespace, properties);
+    Collection<DatasetSpecification> result = instanceManager.get(namespace, properties);
+
+    try {
+      accessEnforcer.enforceOnParent(EntityType.DATASET, namespace, authenticationContext.getPrincipal(),
+        StandardPermission.GET);
+    } catch (UnauthorizedException e) {
+      LOG.info("DATASET LIST TEST AUTH EXCEPTION: " + e.getMessage());
+      return result.stream()
+        .map(datasetSpecification -> DatasetsUtil.removeSensitiveProperties(datasetSpecification, ignoredPrefixes))
+        .collect(Collectors.toList());
+    }
+
+    return result;
   }
 
   /**
@@ -630,6 +668,24 @@ public class DatasetInstanceService {
       SystemMetadataWriter metadataWriter = new DelegateSystemMetadataWriter(metadataServiceClient, dataset, metadata);
       metadataWriter.write();
     }
+  }
+
+  private List<String> getDatasetPrefixesToIgnore(CConfiguration configuration) {
+    List<String> ignoredPrefixes = Collections.emptyList();
+
+    try {
+      String ignoredPrefixesString = configuration.get(IGNORE_PREFIXES_CONFIG);
+      if (ignoredPrefixesString != null && !ignoredPrefixesString.isEmpty()) {
+        ignoredPrefixes = Arrays.stream(ignoredPrefixesString.split(IGNORE_PREFIXES_SEPARATOR))
+          .map(String::trim)
+          .filter(value -> !value.isEmpty())
+          .collect(Collectors.toList());
+      }
+      LOG.info("IGNORE PROPERTIES LIST: " + ignoredPrefixes);
+    } catch (Exception ex) {
+      LOG.warn("Failed to parse value from '{}' with error: {}", IGNORE_PREFIXES_CONFIG, ex.getMessage());
+    }
+    return ignoredPrefixes;
   }
 }
 

@@ -42,9 +42,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
@@ -195,5 +197,38 @@ public final class DatasetsUtil {
    */
   public static boolean isTransactional(Map<String, String> props) {
     return !"true".equalsIgnoreCase(props.get(Constants.Dataset.TABLE_TX_DISABLED));
+  }
+
+  public static DatasetSpecification removeSensitiveProperties(DatasetSpecification specification,
+                                                               List<String> ignoredPrefixes) {
+    Map<String, String> filteredProperties =
+      removeSensitiveProperties(specification.getProperties(), ignoredPrefixes);
+    Map<String, String> filteredOriginalProperties =
+      removeSensitiveProperties(specification.getOriginalProperties(), ignoredPrefixes);
+
+    return DatasetSpecification.builder(specification.getName(), specification.getType())
+      .setDescription(specification.getDescription())
+      .properties(filteredProperties)
+      .datasets(specification.getSpecifications().values())
+      .build()
+      .setOriginalProperties(filteredOriginalProperties);
+  }
+
+  public static Map<String, String> removeSensitiveProperties(Map<String, String> properties,
+                                               List<String> ignoredPrefixes) {
+    if (properties == null || properties.isEmpty() || ignoredPrefixes.isEmpty()) {
+      LOG.info("RETURN UNCHANGED");
+      return properties;
+    }
+
+    Map<String, String> filteredProperties = properties.entrySet()
+      .stream()
+      .filter(propertyEntry -> ignoredPrefixes
+        .stream()
+        .noneMatch(s -> propertyEntry.getKey().startsWith(s)))
+      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    LOG.info("FILTERED PROPERTIES: " + filteredProperties);
+    return filteredProperties;
   }
 }

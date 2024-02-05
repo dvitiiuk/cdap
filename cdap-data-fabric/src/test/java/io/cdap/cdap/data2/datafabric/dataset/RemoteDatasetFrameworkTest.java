@@ -26,6 +26,7 @@ import com.google.inject.Scopes;
 import com.google.inject.Singleton;
 import io.cdap.cdap.api.dataset.DatasetManagementException;
 import io.cdap.cdap.api.metrics.MetricsCollectionService;
+import io.cdap.cdap.common.conf.CConfiguration;
 import io.cdap.cdap.common.conf.CConfigurationUtil;
 import io.cdap.cdap.common.conf.Constants;
 import io.cdap.cdap.common.conf.SConfiguration;
@@ -180,7 +181,8 @@ public class RemoteDatasetFrameworkTest extends AbstractDatasetFrameworkTest {
                                                                         instanceManager, opExecutor,
                                                                         exploreFacade, namespaceQueryAdmin, ownerAdmin,
                                                                         accessEnforcer, authenticationContext,
-                                                                        new NoOpMetadataServiceClient());
+                                                                        new NoOpMetadataServiceClient(),
+                                                                        CConfiguration.create());
     instanceService.setAuditPublisher(inMemoryAuditPublisher);
 
     service = new DatasetService(cConf, SConfiguration.create(),

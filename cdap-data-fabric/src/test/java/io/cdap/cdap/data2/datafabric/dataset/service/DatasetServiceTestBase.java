@@ -252,7 +252,7 @@ public abstract class DatasetServiceTestBase {
                                                  instanceManager, opExecutor, exploreFacade,
                                                  namespaceQueryAdmin, ownerAdmin, authEnforcer,
                                                  authenticationContext,
-                                                 new NoOpMetadataServiceClient());
+                                                 new NoOpMetadataServiceClient(), CConfiguration.create());
 
     service = new DatasetService(cConf, SConfiguration.create(),
                                  discoveryService, discoveryServiceClient, commonNettyHttpServiceFactory,
